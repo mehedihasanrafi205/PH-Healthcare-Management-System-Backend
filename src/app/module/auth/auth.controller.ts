@@ -118,11 +118,29 @@ const googleLogin = catchAsync(async (req: Request, res: Response) => {
 
   const result = await AuthService.googleLogin(payload);
 
+  const { accessToken, refreshToken } = result;
+
+  res.cookie("accessToken", accessToken, {
+    httpOnly: true,
+    secure: false,
+    sameSite: "none",
+    maxAge: 1000 * 60 * 60 * 24, // 24 hour or 1 day
+  });
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: false,
+    sameSite: "none",
+    maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+  });
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "New tokens generated successfully",
-    data: {},
+    message: "User logged in successfully",
+    data: {
+      accessToken,
+      refreshToken,
+    },
   });
 });
 
