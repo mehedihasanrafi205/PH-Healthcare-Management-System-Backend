@@ -1,4 +1,3 @@
-
 import bcrypt from "bcryptjs";
 import type { TokenPayload } from "google-auth-library";
 import type { JwtPayload, SignOptions } from "jsonwebtoken";
@@ -20,6 +19,10 @@ import type {
 
 const registerPatient = async (payload: IRegisterPatientPayload) => {
 	const { name, password } = payload;
+
+	if(!name ||typeof name !== "string" || name.length < 3){
+		
+	}
 	const email = payload.email.trim().toLowerCase();
 
 	const isUserExists = await prisma.user.findUnique({
