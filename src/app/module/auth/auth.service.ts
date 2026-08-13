@@ -23,6 +23,9 @@ import crypto from "crypto";
 import { redisClient } from "../../lib/redis";
 import { transporter } from "../../lib/nodemailer";
 
+import ejs from "ejs";
+import path from "path";
+
 const registerPatient = async (payload: IRegisterPatientPayload) => {
   const { name, password, patient: patientData } = payload;
 
@@ -377,12 +380,25 @@ const forgotPassword = async (payload: IForgotPasswordPayload) => {
   const otp = crypto.randomInt(100000, 1000000).toString();
 
   const key = `forgot-password-otp:${isUserExists.email}`;
+  const expirationSeconds = 60 * 5; // 5 minutes in seconds
 
   await redisClient.set(key, otp, {
     expiration: {
       type: "EX",
-      value: 60 * 5, // 5 minutes in seconds
+      value: expirationSeconds,
     },
+  });
+
+  const templatePath = path.join(
+    process.cwd(),
+    "src/app/templates/forgot-password.ejs",
+  );
+
+  const html = await ejs.renderFile(templatePath, {
+    name: isUserExists.name,
+    otp,
+    expirationMinutes: expirationSeconds / 60,
+    year: new Date().getFullYear(),
   });
 
   await transporter.sendMail({
@@ -390,10 +406,9 @@ const forgotPassword = async (payload: IForgotPasswordPayload) => {
     to: isUserExists.email,
     subject: "Forget Password",
     // text: `Your OTP is ${otp}`,
-    html: `<h1>Your OTP is ${otp}</h1>`
+    // html: `<h1>Your OTP is ${otp}</h1>`,
+    html,
   });
-
-
 };
 const resetPassword = async (payload: IResetPasswordPayload) => {
   const { email, otp, newPassword } = payload;
@@ -450,15 +465,24 @@ const resetPassword = async (payload: IResetPasswordPayload) => {
   });
 
   await redisClient.del([key]);
+  const templatePath = path.join(
+    process.cwd(),
+    "src/app/templates/reset-password-success.ejs",
+  );
 
-  
+  const html = await ejs.renderFile(templatePath, {
+    name: isUserExists.name,
+    otp,
+    year: new Date().getFullYear(),
+  });
+
   await transporter.sendMail({
     from: config.email_sender,
     to: isUserExists.email,
     subject: "Password Changed",
-    html: `<h1>Your password changed successfully </h1>`
+    // html: `<h1>Your password changed successfully </h1>`,
+    html,
   });
-
 };
 
 export const AuthService = {
