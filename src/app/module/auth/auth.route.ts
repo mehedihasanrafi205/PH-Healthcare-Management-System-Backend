@@ -15,7 +15,7 @@ router.post(
 );
 router.post(
   "/login",
-  validateRequest(userValidation.PatientRegistrationZodSchema),
+  validateRequest(userValidation.LoginZodSchema),
   AuthController.loginUser,
 );
 router.get(
