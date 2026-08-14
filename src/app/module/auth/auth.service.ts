@@ -26,6 +26,7 @@ import { transporter } from "../../lib/nodemailer";
 
 import ejs from "ejs";
 import path from "path";
+import { email } from "zod";
 
 const registerPatient = async (payload: IRegisterPatientPayload) => {
   const { name, password, patient: patientData } = payload;
@@ -98,8 +99,6 @@ const registerPatient = async (payload: IRegisterPatientPayload) => {
     subject: "Email verification",
     html,
   });
-
-
 };
 
 const verifyPatientEmail = async (payload: IVerifyEmailPayload) => {
@@ -115,7 +114,6 @@ const verifyPatientEmail = async (payload: IVerifyEmailPayload) => {
     throw new Error("Email already verified");
   }
 
- 
   if (isUserExists?.status === UserStatus.BLOCKED) {
     throw new Error("User is blocked");
   }
@@ -164,6 +162,27 @@ const verifyPatientEmail = async (payload: IVerifyEmailPayload) => {
     },
     omit: { password: true },
     include: { patient: true },
+  });
+
+  await redisClient.del(patientRegistrationKey);
+
+  const templatePath = path.join(
+    process.cwd(),
+    "src/app/templates/patient-welcome-email.ejs",
+  );
+
+  const templateData = {
+    name: createdUser.name,
+    email: createdUser.email,
+    year: new Date().getFullYear(),
+  };
+  const html = await ejs.renderFile(templatePath, templateData);
+
+  await transporter.sendMail({
+    from: config.email_sender,
+    to: email,
+    subject: "Welcome to PH Healthcare Management System",
+    html,
   });
 
   const { patient, ...user } = createdUser;
@@ -410,6 +429,25 @@ const googleLogin = async (payload: IGoogleLoginPayload) => {
           },
         },
       });
+      const templatePath = path.join(
+        process.cwd(),
+        "src/app/templates/patient-welcome-email.ejs",
+      );
+
+      const templateData = {
+        name: user.name,
+        email: user.email,
+        year: new Date().getFullYear(),
+      };
+
+      const html = await ejs.renderFile(templatePath, templateData);
+
+      await transporter.sendMail({
+        from: config.email_sender,
+        to: user.email,
+        subject: "Welcome To PH Healthcare Management System",
+        html,
+      });
     }
   }
 
@@ -597,5 +635,5 @@ export const AuthService = {
   googleLogin,
   forgotPassword,
   resetPassword,
-  verifyPatientEmail
+  verifyPatientEmail,
 };
