@@ -17,6 +17,7 @@ import type {
   IRegisterPatientPayload,
   IRequestUser,
   IResetPasswordPayload,
+  IVerifyEmailPayload,
 } from "./auth.interface";
 
 import crypto from "crypto";
@@ -85,7 +86,7 @@ const registerPatient = async (payload: IRegisterPatientPayload) => {
   const templateData = {
     name,
     email,
-    otpValue,
+    otp: otpValue,
     expirationMinutes: expirationSeconds / 60,
     year: new Date().getFullYear(),
   };
@@ -98,20 +99,66 @@ const registerPatient = async (payload: IRegisterPatientPayload) => {
     html,
   });
 
-  /**
-  *   const createdUser = await prisma.user.create({
+
+};
+
+const verifyPatientEmail = async (payload: IVerifyEmailPayload) => {
+  const otp = payload.otp;
+
+  const email = payload.email.trim().toLowerCase();
+
+  const isUserExists = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (isUserExists?.emailVerified) {
+    throw new Error("Email already verified");
+  }
+
+ 
+  if (isUserExists?.status === UserStatus.BLOCKED) {
+    throw new Error("User is blocked");
+  }
+
+  if (isUserExists?.isDeleted || isUserExists?.status === UserStatus.DELETED) {
+    throw new Error("User is deleted");
+  }
+
+  const otpKey = `patient-registration-otp:${email}`;
+  const redisOtp = await redisClient.get(otpKey);
+
+  if (!redisOtp) {
+    throw new Error("Invalid OTP");
+  }
+
+  if (redisOtp !== otp) {
+    throw new Error("OTP does not match");
+  }
+  await redisClient.del(otpKey);
+
+  const patientRegistrationKey = `patient-registration-data:${email}`;
+
+  const redisPatientData = await redisClient.get(patientRegistrationKey);
+
+  if (!redisPatientData) {
+    throw new Error("User Doesn't Exist");
+  }
+
+  const patientPayload: IRegisterPatientPayload = JSON.parse(redisPatientData);
+
+  const createdUser = await prisma.user.create({
     data: {
-      name,
-      email,
-      password: hashedPassword,
+      name: patientPayload.name,
+      email: patientPayload.email,
+      password: patientPayload.password,
       role: Role.PATIENT,
       status: UserStatus.ACTIVE,
-      emailVerified: false,
+      emailVerified: true,
       patient: {
         create: {
-          name,
-          email,
-          contactNumber: patientData?.contactNumber || "",
+          name: patientPayload.name,
+          email: patientPayload.email,
+          contactNumber: patientPayload?.patient?.contactNumber || "",
         },
       },
     },
@@ -145,7 +192,6 @@ const registerPatient = async (payload: IRegisterPatientPayload) => {
     accessToken,
     refreshToken,
   };
-  */
 };
 
 const loginUser = async (payload: ILoginUserPayload) => {
@@ -551,4 +597,5 @@ export const AuthService = {
   googleLogin,
   forgotPassword,
   resetPassword,
+  verifyPatientEmail
 };
