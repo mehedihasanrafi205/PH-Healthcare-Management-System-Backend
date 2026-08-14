@@ -44,7 +44,62 @@ const registerPatient = async (payload: IRegisterPatientPayload) => {
     Number(config.bcrypt_salt_rounds),
   );
 
-  const createdUser = await prisma.user.create({
+  const otpKey = `patient-registration-otp:${email}`;
+
+  const otpValue = crypto.randomInt(100000, 1000000).toString();
+
+  const expirationSeconds = 60 * 5; // 5 minutes in seconds
+
+  await redisClient.set(otpKey, otpValue, {
+    expiration: {
+      type: "EX",
+      value: expirationSeconds,
+    },
+  });
+
+  const patientRegistrationKey = `patient-registration-data:${email}`;
+
+  const redisUserDataPayload = {
+    name,
+    email,
+    password: hashedPassword,
+    patient: patientData,
+  };
+
+  await redisClient.set(
+    patientRegistrationKey,
+    JSON.stringify(redisUserDataPayload),
+    {
+      expiration: {
+        type: "EX",
+        value: expirationSeconds,
+      },
+    },
+  );
+
+  const templatePath = path.join(
+    process.cwd(),
+    "src/app/templates/registration-user-otp.ejs",
+  );
+
+  const templateData = {
+    name,
+    email,
+    otpValue,
+    expirationMinutes: expirationSeconds / 60,
+    year: new Date().getFullYear(),
+  };
+  const html = await ejs.renderFile(templatePath, templateData);
+
+  await transporter.sendMail({
+    from: config.email_sender,
+    to: email,
+    subject: "Email verification",
+    html,
+  });
+
+  /**
+  *   const createdUser = await prisma.user.create({
     data: {
       name,
       email,
@@ -90,6 +145,7 @@ const registerPatient = async (payload: IRegisterPatientPayload) => {
     accessToken,
     refreshToken,
   };
+  */
 };
 
 const loginUser = async (payload: ILoginUserPayload) => {
@@ -394,12 +450,13 @@ const forgotPassword = async (payload: IForgotPasswordPayload) => {
     "src/app/templates/forgot-password.ejs",
   );
 
-  const html = await ejs.renderFile(templatePath, {
+  const templateData = {
     name: isUserExists.name,
     otp,
     expirationMinutes: expirationSeconds / 60,
     year: new Date().getFullYear(),
-  });
+  };
+  const html = await ejs.renderFile(templatePath, templateData);
 
   await transporter.sendMail({
     from: config.email_sender,
@@ -470,11 +527,12 @@ const resetPassword = async (payload: IResetPasswordPayload) => {
     "src/app/templates/reset-password-success.ejs",
   );
 
-  const html = await ejs.renderFile(templatePath, {
+  const templateData = {
     name: isUserExists.name,
     otp,
     year: new Date().getFullYear(),
-  });
+  };
+  const html = await ejs.renderFile(templatePath, templateData);
 
   await transporter.sendMail({
     from: config.email_sender,
