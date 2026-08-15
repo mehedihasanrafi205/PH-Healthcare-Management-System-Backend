@@ -11,13 +11,13 @@ const uploadProfileImage = catchAsync(async (req: Request, res: Response) => {
   }
   const UserId = req.user?.userId;
 
-  await userService.uploadProfileImage(req.file?.buffer,UserId);
+  const result = await userService.uploadProfileImage(req.file?.buffer,UserId!);
 
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
-    message: "Email Verified Successfully",
-    data: {},
+    message: "Profile photo updated successfully",
+    data: result,
   });
 });
 
