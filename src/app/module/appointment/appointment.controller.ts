@@ -14,7 +14,21 @@ const bookAppointment = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+const bookAppointmentCallback = catchAsync(
+  async (req: Request, res: Response) => {
+    console.log(req.query, "req.query");
+    const result = AppointmentService.bookAppointmentCallback();
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "",
+      data: result,
+    });
+  },
+);
 
 export const AppointmentController = {
   bookAppointment,
+  bookAppointmentCallback,
 };
