@@ -17,7 +17,7 @@ const bookAppointment = catchAsync(async (req: Request, res: Response) => {
 const bookAppointmentCallback = catchAsync(
   async (req: Request, res: Response) => {
     console.log(req.query, "req.query");
-    const result = AppointmentService.bookAppointmentCallback();
+    const result = await AppointmentService.bookAppointmentCallback(req.query);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,

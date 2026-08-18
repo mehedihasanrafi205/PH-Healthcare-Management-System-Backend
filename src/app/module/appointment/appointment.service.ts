@@ -36,12 +36,47 @@ const bookAppointment = async () => {
   return bkashCreatePaymentResult;
 };
 
-const bookAppointmentCallback = () => {
-  return {
-    success: true,
-  };
+const bookAppointmentCallback = async (query: Record<string, any>) => {
+  const paymentId = query.paymentID;
+
+  if (!paymentId) {
+    throw new Error("Payment Id Missing");
+  }
+
+  const status = query.status;
+
+  if (!status) {
+    throw new Error("Payment Status Missing");
+  }
+
+  const bkashIdToken = await getBkashIdToken();
+  if (!bkashIdToken) {
+    throw new Error("No Bkash Access token found!");
+  }
+
+  
+
+  const executedPaymentResponse = await fetch(
+    `${config.bkash_base_url}/tokenized/checkout/execute`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        authorization: bkashIdToken,
+        "x-app-key": config.bkash_app_key,
+      },
+      body: JSON.stringify({
+        paymentID: paymentId,
+      }),
+    },
+  );
+
+  const executedPaymentResult = await executedPaymentResponse.json();
+
+  return executedPaymentResult;
 };
 export const AppointmentService = {
   bookAppointment,
-  bookAppointmentCallback
+  bookAppointmentCallback,
 };
