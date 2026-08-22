@@ -12,7 +12,7 @@ const applyAsDoctor = async (
 ) => {
   const isUserExist = await prisma.user.findUnique({
     where: {
-      id: payload.email,
+      email: payload.user.email,
     },
   });
 
@@ -82,12 +82,13 @@ const applyAsDoctor = async (
       ...payload.user,
       password: hashedPassword,
       role: Role.DOCTOR,
+      needPasswordChange: true,
       doctor: {
         create: {
           name: payload.user.name,
           email: payload.user.email,
           ...payload.doctor,
-          resumeUrl: resumeUploadResults.secure_url,
+          resume: resumeUploadResults.secure_url,
           resumePublicId: resumeUploadResults.public_id,
           additionalFiles: additionalFilesUploadResults.map((file) => ({
             url: file.secure_url,
@@ -96,6 +97,9 @@ const applyAsDoctor = async (
         },
       },
     },
+    include:{
+      doctor:true
+    }
   });
 
   return doctorApplication;
