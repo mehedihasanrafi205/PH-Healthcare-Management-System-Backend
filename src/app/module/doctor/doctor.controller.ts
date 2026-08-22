@@ -14,12 +14,16 @@ const applyAsDoctor = catchAsync(async (req: Request, res: Response) => {
 
   console.log({ resume, additionalFiles, data });
 
-  const result = await DoctorServices.applyAsDoctor();
+  const result = await DoctorServices.applyAsDoctor(
+    data,
+    resume,
+    additionalFiles,
+  );
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: "Applied As Doctor Successfully",
-    data: {},
+    data: result,
   });
 });
 
