@@ -3,16 +3,26 @@ import { prisma } from "../../lib/prisma";
 import { cloudinary } from "../../lib/cloudinary";
 import config from "../../config";
 import bcrypt from "bcryptjs";
-import { Role } from "../../../generated/prisma/enums";
+import {
+  DoctorVerificationStatus,
+  Role,
+} from "../../../generated/prisma/enums";
 import crypto from "crypto";
 import { redisClient } from "../../lib/redis";
 import path from "path";
 import { transporter } from "../../lib/nodemailer";
 import ejs from "ejs";
+import {
+  IApplyAsDoctorPayload,
+  IApproveDoctorPayload,
+  IVerifyDoctorEmailPayload,
+} from "./doctor.interface";
 
+import httpStatus from "http-status";
+import { RequestUser } from "../../middleware/checkAuth";
 
 const applyAsDoctor = async (
-  payload: any,
+  payload: IApplyAsDoctorPayload,
   resume: Express.Multer.File | null,
   additionalFiles: Express.Multer.File[],
 ) => {
@@ -125,8 +135,8 @@ const applyAsDoctor = async (
   );
 
   const templateData = {
-    name:payload.user.name,
-    email:payload.user.email,
+    name: payload.user.name,
+    email: payload.user.email,
     otp: otpValue,
     expirationMinutes: expirationSeconds / 60,
     year: new Date().getFullYear(),
@@ -134,21 +144,116 @@ const applyAsDoctor = async (
 
   const html = await ejs.renderFile(templatePath, templateData);
 
-	await transporter.sendMail({
-		from: config.email_sender,
-		to: payload.user.email,
-		subject: "Doctor Application - Email Verification",
-		html,
-	});
+  await transporter.sendMail({
+    from: config.email_sender,
+    to: payload.user.email,
+    subject: "Doctor Application - Email Verification",
+    html,
+  });
 
   return doctorApplication;
 };
 
-const verifyDoctorEmail  = async(payload:any)=>{
+const verifyDoctorEmail = async (payload: IVerifyDoctorEmailPayload) => {
+  const otp = payload.otp;
+  const email = payload.email.trim().toLowerCase();
 
-}
+  const existingUser = await prisma.user.findUnique({
+    where: { email, role: Role.DOCTOR },
+  });
+
+  if (!existingUser) {
+    throw new Error("Doctor Application Not Found. Please Apply Again.");
+  }
+
+  if (existingUser.emailVerified) {
+    throw new Error("Email Already Verified");
+  }
+
+  const otpKey = `doctor-application-otp:${email}`;
+
+  const redisOtp = await redisClient.get(otpKey);
+
+  if (!redisOtp) {
+    throw new Error(
+      "OTP Expired. Your Application Window Has Closed, Please Apply Again.",
+    );
+  }
+
+  if (redisOtp !== otp) {
+    throw new Error("OTP Does Not Match");
+  }
+
+  await redisClient.del(otpKey);
+
+  const verifiedUser = await prisma.user.update({
+    where: { id: existingUser.id },
+    data: { emailVerified: true },
+    omit: { password: true },
+    include: { doctor: true },
+  });
+
+  return verifiedUser;
+};
+
+const approveDoctor = async (
+  payload: IApproveDoctorPayload,
+  reviewer: RequestUser,
+) => {
+  const { doctorId, verificationStatus, rejectionReason } = payload;
+
+  const existingDoctor = await prisma.doctor.findUnique({
+    where: { id: doctorId },
+    include: { user: true },
+  });
+
+  if (!existingDoctor) {
+    throw new Error("Doctor Application Not Found");
+  }
+
+  if (existingDoctor.isDeleted) {
+    throw new Error("Doctor Application Has Been Deleted");
+  }
+
+  if (!existingDoctor.user.emailVerified) {
+    throw new Error(
+      "Doctor Has Not Verified Their Email Yet. Application Cannot Be Reviewed.",
+    );
+  }
+
+  if (existingDoctor.verificationStatus !== DoctorVerificationStatus.PENDING) {
+    throw new Error(
+      `Doctor Application Has Already Been ${existingDoctor.verificationStatus.toLowerCase()}`,
+    );
+  }
+
+  if (
+    verificationStatus === DoctorVerificationStatus.REJECTED &&
+    !rejectionReason
+  ) {
+    throw new Error(
+      "Rejection Reason Is Required When Rejecting A Doctor Application",
+    );
+  }
+
+  const updatedDoctor = await prisma.doctor.update({
+    where: { id: doctorId },
+    data: {
+      verificationStatus,
+      rejectionReason:
+        verificationStatus === DoctorVerificationStatus.REJECTED
+          ? rejectionReason
+          : null,
+      reviewedBy: reviewer.userId,
+      reviewedAt: new Date(),
+    },
+  });
+
+  
+};
 
 export const DoctorServices = {
   applyAsDoctor,
-  verifyDoctorEmail
+  verifyDoctorEmail,
+  approveDoctor,
 };
