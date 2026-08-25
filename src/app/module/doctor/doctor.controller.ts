@@ -15,7 +15,7 @@ const applyAsDoctor = catchAsync(async (req: Request, res: Response) => {
     JSON.parse(req.body.data),
   );
 
-  if(!zodValidationResult.success){
+  if (!zodValidationResult.success) {
     throw new Error(zodValidationResult.error.issues[0].message);
   }
 
@@ -35,10 +35,9 @@ const applyAsDoctor = catchAsync(async (req: Request, res: Response) => {
   });
 });
 const verifyDoctorEmail = catchAsync(async (req: Request, res: Response) => {
+  const payload = req.body;
 
-  const payload = req.body
-
-  const result = await DoctorServices.verifyDoctorEmail(payload)
+  const result = await DoctorServices.verifyDoctorEmail(payload);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -48,15 +47,27 @@ const verifyDoctorEmail = catchAsync(async (req: Request, res: Response) => {
   });
 });
 const approveDoctor = catchAsync(async (req: Request, res: Response) => {
+  const payload = req.body;
+  const user = req.user!;
 
-  const payload = req.body
-
-  const result = await DoctorServices.approveDoctor(payload)
+  const result = await DoctorServices.approveDoctor(payload, user);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Doctor email verify successfully",
+    message: "Doctor approved successfully",
+    data: result,
+  });
+});
+const getAllDoctors = catchAsync(async (req: Request, res: Response) => {
+
+
+  const result = await DoctorServices.getAllDoctors();
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Doctors retrieved successfully",
     data: result,
   });
 });
@@ -66,5 +77,6 @@ const approveDoctor = catchAsync(async (req: Request, res: Response) => {
 export const DoctorController = {
   applyAsDoctor,
   verifyDoctorEmail,
-  approveDoctor
+  approveDoctor,
+  getAllDoctors
 };

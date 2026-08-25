@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Doctor Application Approved</title>
+  </head>
+  <body style="margin: 0; padding: 0; background-color: #f4f6f8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f4f6f8; padding: 40px 10px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" style="max-width: 500px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); padding: 32px; border: 1px solid #e5e7eb;">
+            
+            <!-- Success Icon -->
+            <tr>
+              <td align="center" style="padding-bottom: 16px;">
+                <div style="width: 56px; height: 56px; background-color: #ecfdf5; border-radius: 50%; display: inline-block; text-align: center; line-height: 56px;">
+                  <span style="font-size: 28px; color: #10b981;">✓</span>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Header -->
+            <tr>
+              <td align="center" style="padding-bottom: 16px;">
+                <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #111827;">Application Approved!</h1>
+              </td>
+            </tr>
+
+            <!-- Content -->
+            <tr>
+              <td style="color: #4b5563; font-size: 15px; line-height: 1.6; text-align: left;">
+                <p style="margin: 0 0 12px 0;">Dear <strong>Dr. <%= name %></strong>,</p>
+                <p style="margin: 0 0 16px 0;">
+                  <strong>Congratulations!</strong> We are delighted to inform you that your application to join <strong>PH Healthcare System</strong> as a verified doctor has been <strong>approved</strong>.
+                </p>
+                <p style="margin: 0 0 20px 0;">
+                  You can now log in to your practitioner dashboard, set up your availability schedules, and start receiving patient appointments.
+                </p>
+              </td>
+            </tr>
+
+            <!-- Information Box -->
+            <tr>
+              <td style="padding: 16px; background-color: #f0fdf4; border-left: 4px solid #22c55e; border-radius: 4px; font-size: 13px; color: #15803d; line-height: 1.5;">
+                <strong>Next Steps:</strong> Log in using your email (<strong><%= email %></strong>) to complete your professional profile setup.
+              </td>
+            </tr>
+
+            <!-- Spacing -->
+            <tr>
+              <td style="padding-bottom: 24px;"></td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="border-top: 1px solid #e5e7eb; padding-top: 20px; font-size: 12px; color: #9ca3af; text-align: center;">
+                &copy; <%= year %> PH Healthcare System. All rights reserved.
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
