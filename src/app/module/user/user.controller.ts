@@ -4,10 +4,11 @@ import { sendResponse } from "../../utils/sendResponse";
 
 import httpStatus from "http-status";
 import { userService } from "./user.service";
+import { AppError } from "../../utils/AppError";
 
 const uploadProfileImage = catchAsync(async (req: Request, res: Response) => {
   if (!req.file) {
-    throw new Error("No file provided");
+    throw new AppError(httpStatus.BAD_REQUEST,"No file provided");
   }
   const UserId = req.user?.userId;
 
