@@ -10,7 +10,8 @@ import { RequestUser } from "../../middleware/checkAuth";
 import httpStatus from "http-status";
 import { AppError } from "../../utils/AppError";
 import { IBookAppointmentPayload } from "./appointment.interface";
-import { isBefore, isSameDay } from "date-fns";
+import { addMinutes, isBefore, isSameDay } from "date-fns";
+import { transporter } from "../../lib/nodemailer";
 
 const bookAppointment = async (
   payload: IBookAppointmentPayload,
@@ -301,12 +302,50 @@ const bookAppointmentCallback = async (query: Record<string, any>) => {
     const executedPaymentResult = await executedPaymentResponse.json();
 
     if (status === "success") {
+      const appointment = await prisma.appointment.findUnique({
+        where: {
+          id: executedPaymentResult.merchantInvoiceNumber,
+        },
+        include: {
+          schedule: true,
+          patient: true,
+          doctor: true,
+        },
+      });
+
+      if (!appointment) {
+        throw new AppError(httpStatus.NOT_FOUND, "Appointment Not Found!");
+      }
+
+      const newAvailableSlots = appointment.schedule.availableSlots - 1;
+
+      const alreadyBookedSlots =
+        appointment.schedule.totalSlots - appointment.schedule.availableSlots;
+
+      const serialNumber = alreadyBookedSlots + 1;
+
+      const joiningTime = addMinutes(
+        appointment.schedule.startDateTime,
+        (serialNumber - 1) * 20,
+      );
+
       await tx.appointment.update({
         where: {
           id: executedPaymentResult.merchantInvoiceNumber,
         },
         data: {
-          status: AppointmentStatus.COMPLETED,
+          status: AppointmentStatus.CONFIRMED,
+          joiningTime,
+          serialNumber,
+        },
+      });
+
+      await tx.schedule.update({
+        where: {
+          id: appointment.schedule.id,
+        },
+        data: {
+          availableSlots: newAvailableSlots,
         },
       });
 
@@ -321,6 +360,12 @@ const bookAppointmentCallback = async (query: Record<string, any>) => {
           paidAt: executedPaymentResult.paymentExecuteTime,
           gatewayResponse: executedPaymentResult,
         },
+      });
+
+      await transporter.sendMail({
+        from: config.email_sender,
+        to: appointment.patient.email,
+        subject: "Your Appointment Invoice - PH Healthcare System",
       });
       return {
         executedPaymentResult,
