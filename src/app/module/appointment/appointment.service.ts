@@ -11,6 +11,9 @@ import httpStatus from "http-status";
 import { AppError } from "../../utils/AppError";
 import {
   IBookAppointmentPayload,
+  ICancelAppointmentPayload,
+  IPayAppointmentPayload,
+  IUpdateAppointmentStatusPayload,
 } from "./appointment.interface";
 import { addMinutes, isBefore, isSameDay, subHours } from "date-fns";
 import { transporter } from "../../lib/nodemailer";
@@ -171,7 +174,10 @@ const bookAppointment = async (
   return transactionResult;
 };
 
-const payAppointment = async (payload: any, user: RequestUser) => {
+const payAppointment = async (
+  payload: IPayAppointmentPayload,
+  user: RequestUser,
+) => {
   const appointmentId = payload.appointmentId;
 
   const existingAppointment = await prisma.appointment.findUnique({
@@ -490,11 +496,11 @@ const bookAppointmentCallback = async (query: Record<string, any>) => {
 };
 
 const cancelAppointment = async (
-  payload: any,
+  payload: ICancelAppointmentPayload,
   user: RequestUser,
 ) => {
   const transactionResult = await prisma.$transaction(async (tx) => {
-    const appointmentId = payload.applicationId;
+    const appointmentId = payload.appointmentId;
 
     const existingAppointment = await tx.appointment.findUnique({
       where: {
@@ -526,7 +532,7 @@ const cancelAppointment = async (
     if (existingAppointment.status === "CANCELLED") {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "Appointment Already canceled",
+        "Appointment Already Cancelled",
       );
     }
 
@@ -539,7 +545,7 @@ const cancelAppointment = async (
       },
     });
 
-    await tx.schedule.update({
+    await prisma.schedule.update({
       where: {
         id: existingAppointment.schedule.id,
       },
@@ -548,12 +554,16 @@ const cancelAppointment = async (
       },
     });
 
-    // Refund process
+    // refund process
     const now = new Date();
-    const startDateTime = existingAppointment.schedule.startDateTime;
+    const startDateTime = existingAppointment.schedule.startDateTime; // 25 August : 3:00 PM
 
+    // After 2:00 Pm => no refund
+    // must cancel before  2:00 PM
     const refundCutOffTime = subHours(startDateTime, 1);
 
+    // now >  refuncCutOff Time => no refund
+    // now < refundCutOff Time => refund eligible
     const isEligibleForRefund = isBefore(now, refundCutOffTime);
 
     if (isEligibleForRefund) {
@@ -580,15 +590,13 @@ const cancelAppointment = async (
             paymentID: existingAppointment.payment?.bkashPaymentId,
             trxID: existingAppointment.payment?.bkashTrxId,
             amount: existingAppointment.payment?.amount.toString(),
-            sku: "Appointment cancellation",
-            reason: "Patient cancel the appointment",
+            sku: "Appointment Cancellation",
+            reason: "Patient Cancelled The Appointment",
           }),
         },
       );
 
       const bkashRefundPaymentResult = await bkashRefundPaymentResponse.json();
-
-      console.log(bkashRefundPaymentResult);
 
       await tx.payment.update({
         where: {
@@ -598,7 +606,7 @@ const cancelAppointment = async (
           refundTrxId: bkashRefundPaymentResult.refundTrxID,
           refundedAt: bkashRefundPaymentResult.completedTime,
           refundAmount: bkashRefundPaymentResult.amount,
-          refundReason: "Patient cancel the appointment",
+          refundReason: "Patient Cancelled The Appointment",
           status: PaymentStatus.REFUNDED,
           gatewayResponse: bkashRefundPaymentResult,
         },
@@ -620,9 +628,100 @@ const cancelAppointment = async (
   return transactionResult;
 };
 
+// DOCTOR ONLY CONFIRMED => ONGOING => COMPLETED
+const updateAppointmentStatus = async (
+  appointmentId: string,
+  payload: IUpdateAppointmentStatusPayload,
+  user: RequestUser,
+) => {
+  const doctor = await prisma.doctor.findUnique({
+    where: { userId: user.userId },
+  });
+
+  if (!doctor) {
+    throw new AppError(httpStatus.NOT_FOUND, "Doctor Profile Not Found");
+  }
+
+  const appointment = await prisma.appointment.findUnique({
+    where: {
+      id: appointmentId,
+      doctorId: doctor.id,
+    },
+  });
+
+  if (!appointment) {
+    throw new AppError(httpStatus.NOT_FOUND, "Appointment Not Found");
+  }
+
+  if (appointment.status === AppointmentStatus.COMPLETED) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "Appointment is already completed",
+    );
+  }
+
+  if (appointment.status === AppointmentStatus.CANCELLED) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "Appointment is already cancelled",
+    );
+  }
+  if (appointment.status === AppointmentStatus.PENDING) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "Appointment is Pending. You can change the status after appointment is confirmed",
+    );
+  }
+
+  if (appointment.status === AppointmentStatus.CONFIRMED) {
+    if (payload.status !== "ONGOING") {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Confirmed Appointment Must Be Ongoing At First",
+      );
+    }
+
+    await prisma.appointment.update({
+      where: {
+        id: appointment.id,
+      },
+      data: {
+        status: AppointmentStatus.ONGOING,
+      },
+    });
+  }
+
+  if (appointment.status === AppointmentStatus.ONGOING) {
+    if (payload.status !== "COMPLETED") {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Ongoing Appointment Must Be Completed.",
+      );
+    }
+
+    await prisma.appointment.update({
+      where: {
+        id: appointment.id,
+      },
+      data: {
+        status: AppointmentStatus.COMPLETED,
+      },
+    });
+  }
+
+  const updatedAppointment = await prisma.appointment.findUnique({
+    where: {
+      id: appointment.id,
+    },
+  });
+
+  return updatedAppointment;
+};
+
 export const AppointmentService = {
   bookAppointment,
   payAppointment,
   bookAppointmentCallback,
   cancelAppointment,
+  updateAppointmentStatus,
 };
