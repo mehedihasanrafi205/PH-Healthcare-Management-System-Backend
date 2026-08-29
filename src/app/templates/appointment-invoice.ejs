@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Appointment Confirmation & Invoice</title>
+  </head>
+  <body style="margin: 0; padding: 0; background-color: #f4f6f8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f4f6f8; padding: 40px 10px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" style="max-width: 520px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); padding: 32px; border: 1px solid #e5e7eb;">
+            
+            <!-- Success Icon -->
+            <tr>
+              <td align="center" style="padding-bottom: 16px;">
+                <div style="width: 56px; height: 56px; background-color: #ecfdf5; border-radius: 50%; display: inline-block; text-align: center; line-height: 56px;">
+                  <span style="font-size: 28px; color: #10b981;">🗓️</span>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Header -->
+            <tr>
+              <td align="center" style="padding-bottom: 16px;">
+                <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #111827;">Appointment Confirmed!</h1>
+              </td>
+            </tr>
+
+            <!-- Content -->
+            <tr>
+              <td style="color: #4b5563; font-size: 15px; line-height: 1.6; text-align: left;">
+                <p style="margin: 0 0 12px 0;">Hello <strong><%= name %></strong>,</p>
+                <p style="margin: 0 0 16px 0;">
+                  Thank you for booking with <strong>PH Healthcare System</strong>. Your appointment has been successfully scheduled and payment has been verified.
+                </p>
+              </td>
+            </tr>
+
+            <!-- Appointment Details Card -->
+            <tr>
+              <td style="padding: 16px; background-color: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size: 14px; color: #374151; line-height: 1.8;">
+                  <tr>
+                    <td><strong>Doctor:</strong></td>
+                    <td align="right">Dr. <%= doctorName %></td>
+                  </tr>
+                  <% if (specialization) { %>
+                  <tr>
+                    <td><strong>Specialization:</strong></td>
+                    <td align="right"><%= specialization %></td>
+                  </tr>
+                  <% } %>
+                  <tr>
+                    <td><strong>Date:</strong></td>
+                    <td align="right"><%= appointmentDate %></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Joining Time:</strong></td>
+                    <td align="right"><%= joiningTime %></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Serial Number:</strong></td>
+                    <td align="right">#<%= serialNumber %></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Trx ID:</strong></td>
+                    <td align="right"><%= trxID %></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Amount Paid:</strong></td>
+                    <td align="right"><strong><%= amount %> BDT</strong></td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Meeting Link Button -->
+            <% if (meetingLink) { %>
+            <tr>
+              <td align="center" style="padding: 24px 0 12px 0;">
+                <a href="<%= meetingLink %>" target="_blank" style="background-color: #2563eb; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-size: 14px; font-weight: 600; display: inline-block;">
+                  Join Video Consultation
+                </a>
+              </td>
+            </tr>
+            <% } %>
+
+            <!-- Attachment Note -->
+            <tr>
+              <td style="color: #6b7280; font-size: 13px; line-height: 1.5; text-align: center; padding-top: 12px; padding-bottom: 24px;">
+                📎 <em>Your official payment receipt is attached as a PDF invoice to this email.</em>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="border-top: 1px solid #e5e7eb; padding-top: 20px; font-size: 12px; color: #9ca3af; text-align: center;">
+                &copy; <%= year %> PH Healthcare System. All rights reserved.
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
