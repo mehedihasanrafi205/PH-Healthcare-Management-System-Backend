@@ -47,7 +47,7 @@ router.patch(
 );
 
 router.get(
-  "/available-doctors/todays-schedule",
+  "/public/available-today",
   DoctorController.getAvailableDoctorByTodaysSchedule,
 );
 

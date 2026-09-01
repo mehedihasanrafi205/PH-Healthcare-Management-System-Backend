@@ -1,4 +1,4 @@
-import { Role } from "../../generated/prisma/enums";
+import { DoctorVerificationStatus, Role } from "../../generated/prisma/enums";
 import config from "../config";
 import { prisma } from "../lib/prisma";
 import bcrypt from "bcryptjs";
@@ -121,7 +121,7 @@ export const seedTesterDoctor = async () => {
 
         const name = config.tester_doctor_name
         const email = config.tester_doctor_email
-        const password = config.tester_admin_password
+        const password = config.tester_doctor_password
 
         if (!name || !email || !password) {
             throw new Error("Tester Doctor Name , Email, Password Missing In Env File!!!")
@@ -141,10 +141,15 @@ export const seedTesterDoctor = async () => {
                     create:{
                         email,
 						name,
+						address: "123 Green Road, Dhanmondi, Dhaka 1205",
 						experienceYears: 5,
 						licenseNumber: "BMDC0000",
-						qualifications: "MBBS",
+						qualifications: "MBBS, FCPS (Neurology)",
 						specialization: "Neurology",
+						bio: "Consultant Neurologist focused on stroke care, epilepsy and headache disorders.",
+						consultationFee: 1500,
+						contactNumber: "+8801711-000000",
+						verificationStatus: DoctorVerificationStatus.APPROVED,
                     }
                 }
             }
