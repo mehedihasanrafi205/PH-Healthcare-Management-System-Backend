@@ -4,6 +4,8 @@ A production-grade REST API for a doctor-appointment platform. Patients register
 
 > **Note:** This repository contains the **backend only**. It pairs with a separate frontend client (see `FRONTEND_URL`).
 
+**Live Backend URL:** https://ph-healthcare-management-system-backend.vercel.app/
+
 ---
 
 ## ✨ Badges
@@ -475,7 +477,10 @@ npm run start   # run the compiled server (node dist/src/server.js)
 
 ## 🔌 API Endpoint Reference
 
-All feature routes are mounted under `/api/v1` in `src/app.ts`. Base URL: `http://localhost:5000/api/v1`.
+All feature routes are mounted under `/api/v1` in `src/app.ts`.
+
+- **Local:** `http://localhost:5000/api/v1`
+- **Production:** `https://ph-healthcare-management-system-backend.vercel.app/api/v1`
 
 **Access legend:** `🟢 Public` · `🔵 Patient` · `🟠 Doctor` · `🟣 Admin/SUPER_ADMIN` · `🟤 Any authed`
 
