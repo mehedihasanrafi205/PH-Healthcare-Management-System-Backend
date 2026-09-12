@@ -204,6 +204,16 @@ const resetPassword = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const logout = catchAsync(async (req: Request, res: Response) => {
+  res.clearCookie("accessToken");
+  res.clearCookie("refreshToken");
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: " User logout successfully",
+    data: null,
+  });
+});
 export const AuthController = {
   registerPatient,
   loginUser,
@@ -213,4 +223,5 @@ export const AuthController = {
   forgotPassword,
   resetPassword,
   verifyPatientEmail,
+  logout,
 };
